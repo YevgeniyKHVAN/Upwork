@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Рекламные каналы — Дашборд</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0d0e1a; font-family: 'Inter', system-ui, sans-serif; color: #e0e0f0; min-height: 100vh; padding: 24px; }
+  h1 { font-size: 20px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+  .subtitle { color: #444; font-size: 12px; margin-top: 3px; }
+  .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
+  .channel-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .channel-btn { padding: 6px 14px; border-radius: 20px; border: 1.5px solid; cursor: pointer; font-size: 12px; font-weight: 700; background: transparent; transition: all 0.15s; }
+  .metric-tabs { display: flex; gap: 6px; margin-bottom: 24px; background: #13142a; border-radius: 14px; padding: 5px; width: fit-content; flex-wrap: wrap; }
+  .metric-btn { padding: 8px 18px; border-radius: 10px; border: none; cursor: pointer; font-size: 13px; font-weight: 700; background: transparent; color: #555; transition: all 0.15s; }
+  .metric-btn.active { background: #6366f1; color: #fff; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 28px; }
+  .kpi-card { background: #13142a; border-radius: 14px; padding: 16px 18px; border-left: 3px solid; transition: all 0.2s; }
+  .kpi-label { font-size: 11px; color: #555; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .kpi-value { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .kpi-sub { font-size: 11px; color: #444; margin-top: 4px; }
+  .kpi-footer { margin-top: 10px; padding-top: 10px; border-top: 1px solid #1e2035; display: flex; justify-content: space-between; align-items: center; }
+  .kpi-month { font-size: 11px; color: #444; }
+  .kpi-pct { font-size: 12px; font-weight: 700; }
+  .chart-box { background: #13142a; border-radius: 16px; padding: 20px 20px 16px; margin-bottom: 24px; }
+  .section-title { font-size: 13px; color: #555; font-weight: 600; margin-bottom: 16px; }
+  .chart-wrap { position: relative; height: 320px; }
+  .table-box { background: #13142a; border-radius: 16px; overflow: hidden; }
+  .table-header { padding: 14px 18px; border-bottom: 1px solid #1e2035; font-size: 13px; color: #555; font-weight: 600; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead tr { background: #0f1020; }
+  th { padding: 10px 18px; font-weight: 700; white-space: nowrap; }
+  th:first-child { text-align: left; color: #444; }
+  th:not(:first-child) { text-align: right; }
+  tbody tr { border-bottom: 1px solid #1a1b2e; }
+  tbody tr:nth-child(even) { background: #0f1020; }
+  td { padding: 9px 18px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td:first-child { color: #888; text-align: left; }
+  td:not(:first-child) { color: #ccc; text-align: right; }
+  tfoot tr { border-top: 2px solid #2a2b3d; background: #0d0e1a; }
+  tfoot td { padding: 11px 18px; font-weight: 800; text-align: right; }
+  tfoot td:first-child { color: #555; font-weight: 700; text-align: left; }
+  .inactive { opacity: 0.35; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>📊 Рекламные каналы</h1>
+    <p class="subtitle">Апрель 2025 — Февраль 2026 · 11 месяцев</p>
+  </div>
+  <div class="channel-btns" id="channelBtns"></div>
+</div>
+
+<div class="metric-tabs" id="metricTabs"></div>
+
+<div class="kpi-grid" id="kpiGrid"></div>
+
+<div class="chart-box">
+  <div class="section-title" id="chartTitle">Показы по месяцам</div>
+  <div class="chart-wrap"><canvas id="myChart"></canvas></div>
+</div>
+
+<div class="table-box">
+  <div class="table-header" id="tableTitle">Детальная таблица · Показы</div>
+  <div class="table-wrap"><table id="dataTable"></table></div>
+</div>
+
+<script>
+const RAW = {"2025-04":{"fb_impressions":724534,"fb_clicks":10497,"fb_spent":1639003,"fb_leads":7,"tt_impressions":369810,"tt_clicks":862,"tt_spent":161015,"tt_leads":47,"yd_impressions":1175555,"yd_clicks":6152,"yd_spent":0,"yd_leads":23},"2025-05":{"fb_impressions":948135,"fb_clicks":11578,"fb_spent":2134660,"fb_leads":690,"tt_impressions":1060812,"tt_clicks":6699,"tt_spent":341692,"tt_leads":48,"yd_impressions":1310644,"yd_clicks":17395,"yd_spent":541902,"yd_leads":65},"2025-06":{"fb_impressions":1011880,"fb_clicks":19118,"fb_spent":2163431,"fb_leads":680,"tt_impressions":1441098,"tt_clicks":26420,"tt_spent":650366,"tt_leads":44,"yd_impressions":2073780,"yd_clicks":21042,"yd_spent":428787,"yd_leads":98},"2025-07":{"fb_impressions":760972,"fb_clicks":9385,"fb_spent":1987482,"fb_leads":770,"tt_impressions":2353199,"tt_clicks":6237,"tt_spent":638522,"tt_leads":134,"yd_impressions":7865917,"yd_clicks":34285,"yd_spent":899776,"yd_leads":192},"2025-08":{"fb_impressions":713795,"fb_clicks":7500,"fb_spent":2261665,"fb_leads":539,"tt_impressions":3237126,"tt_clicks":8814,"tt_spent":884248,"tt_leads":125,"yd_impressions":7394321,"yd_clicks":32902,"yd_spent":982241,"yd_leads":222},"2025-09":{"fb_impressions":721354,"fb_clicks":11769,"fb_spent":1816829,"fb_leads":486,"tt_impressions":2059183,"tt_clicks":10339,"tt_spent":667588,"tt_leads":221,"yd_impressions":2094153,"yd_clicks":28280,"yd_spent":370594,"yd_leads":134},"2025-10":{"fb_impressions":1070631,"fb_clicks":22536,"fb_spent":2116139,"fb_leads":537,"tt_impressions":3326878,"tt_clicks":13009,"tt_spent":899261,"tt_leads":84,"yd_impressions":401185,"yd_clicks":25271,"yd_spent":401185,"yd_leads":167},"2025-11":{"fb_impressions":901760,"fb_clicks":23324,"fb_spent":2015017,"fb_leads":233,"tt_impressions":3826685,"tt_clicks":16225,"tt_spent":985461,"tt_leads":186,"yd_impressions":2261283,"yd_clicks":26834,"yd_spent":375082,"yd_leads":139},"2025-12":{"fb_impressions":617695,"fb_clicks":13905,"fb_spent":1901662,"fb_leads":287,"tt_impressions":7350522,"tt_clicks":31653,"tt_spent":761616,"tt_leads":151,"yd_impressions":3569026,"yd_clicks":57349,"yd_spent":577002,"yd_leads":116},"2026-01":{"fb_impressions":448298,"fb_clicks":14395,"fb_spent":1271017,"fb_leads":623,"tt_impressions":2385135,"tt_clicks":11733,"tt_spent":1118580,"tt_leads":312,"yd_impressions":2607479,"yd_clicks":26805,"yd_spent":344788,"yd_leads":163},"2026-02":{"fb_impressions":698320,"fb_clicks":34267,"fb_spent":1558627,"fb_leads":640,"tt_impressions":8726676,"tt_clicks":30311,"tt_spent":1458590,"tt_leads":334,"yd_impressions":6386428,"yd_clicks":41318,"yd_spent":537421,"yd_leads":151}};
+
+const MONTH_LABELS = {"2025-04":"Апр 25","2025-05":"Май 25","2025-06":"Июн 25","2025-07":"Июл 25","2025-08":"Авг 25","2025-09":"Сен 25","2025-10":"Окт 25","2025-11":"Ноя 25","2025-12":"Дек 25","2026-01":"Янв 26","2026-02":"Фев 26"};
+
+const METRICS = [
+  { key:"impressions", label:"Показы",   icon:"👁",  fmt: n => n>=1e6?(n/1e6).toFixed(1)+"M":n>=1000?(n/1000).toFixed(0)+"K":n },
+  { key:"clicks",      label:"Клики",    icon:"🖱",  fmt: n => n>=1000?(n/1000).toFixed(1)+"K":n },
+  { key:"spent",       label:"Расход ₽", icon:"💸", fmt: n => n>=1e6?(n/1e6).toFixed(2)+"M ₽":n>=1000?(n/1000).toFixed(0)+"K ₽":n+"₽" },
+  { key:"leads",       label:"Лиды",     icon:"🎯",  fmt: n => n.toLocaleString("ru") },
+];
+
+const CHANNELS = [
+  { key:"fb", label:"Facebook", color:"#4f8ef7" },
+  { key:"tt", label:"TikTok",   color:"#ff3b6b" },
+  { key:"yd", label:"Яндекс",   color:"#fbbf24" },
+];
+
+let activeCh = ["fb","tt","yd"];
+let activeMetric = "impressions";
+let chart = null;
+
+const months = Object.keys(RAW);
+const lastMonth = months[months.length-1];
+const prevMonth = months[months.length-2];
+
+function fmt(key, n) {
+  const m = METRICS.find(m=>m.key===key);
+  return m ? m.fmt(Math.round(n)) : n;
+}
+
+function total(chKey) {
+  return Object.values(RAW).reduce((s,v)=>s+(v[`${chKey}_${activeMetric}`]||0),0);
+}
+
+function renderChannelBtns() {
+  const el = document.getElementById("channelBtns");
+  el.innerHTML = CHANNELS.map(ch => `
+    <button class="channel-btn" id="ch-${ch.key}"
+      style="border-color:${ch.color};color:${activeCh.includes(ch.key)?ch.color:'#444'};background:${activeCh.includes(ch.key)?ch.color+'22':'transparent'}"
+      onclick="toggleCh('${ch.key}')">${ch.label}</button>
+  `).join("");
+}
+
+function renderMetricTabs() {
+  const el = document.getElementById("metricTabs");
+  el.innerHTML = METRICS.map(m => `
+    <button class="metric-btn ${activeMetric===m.key?'active':''}" onclick="setMetric('${m.key}')">${m.icon} ${m.label}</button>
+  `).join("");
+}
+
+function renderKPI() {
+  const el = document.getElementById("kpiGrid");
+  el.innerHTML = CHANNELS.map(ch => {
+    const last = RAW[lastMonth][`${ch.key}_${activeMetric}`]||0;
+    const prev = RAW[prevMonth][`${ch.key}_${activeMetric}`]||1;
+    const pct = ((last-prev)/prev*100).toFixed(1);
+    const up = last >= prev;
+    const inactive = !activeCh.includes(ch.key);
+    return `
+      <div class="kpi-card ${inactive?'inactive':''}" style="border-left-color:${ch.color}">
+        <div class="kpi-label">${ch.label}</div>
+        <div class="kpi-value" style="color:${ch.color}">${fmt(activeMetric,total(ch.key))}</div>
+        <div class="kpi-sub">за всё время</div>
+        <div class="kpi-footer">
+          <span class="kpi-month">Фев 26</span>
+          <span class="kpi-pct" style="color:${up?'#22c55e':'#f87171'}">${up?'▲':'▼'} ${Math.abs(pct)}%</span>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderChart() {
+  const m = METRICS.find(m=>m.key===activeMetric);
+  document.getElementById("chartTitle").textContent = `${m.label} по месяцам`;
+  const labels = months.map(k=>MONTH_LABELS[k]);
+  const datasets = CHANNELS.filter(ch=>activeCh.includes(ch.key)).map(ch=>({
+    label: ch.label,
+    data: months.map(k=>RAW[k][`${ch.key}_${activeMetric}`]||0),
+    backgroundColor: ch.color+"cc",
+    borderColor: ch.color,
+    borderWidth: 1,
+    borderRadius: 5,
+  }));
+
+  if (chart) chart.destroy();
+  const ctx = document.getElementById("myChart").getContext("2d");
+  chart = new Chart(ctx, {
+    type: "bar",
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color:"#888", font:{size:12}, boxWidth:12, borderRadius:3 } },
+        tooltip: {
+          backgroundColor:"#1e2235", borderColor:"#2d3050", borderWidth:1,
+          titleColor:"#aab", bodyColor:"#ccc",
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${m.fmt(Math.round(ctx.raw))}` }
+        }
+      },
+      scales: {
+        x: { grid:{color:"#1e2035"}, ticks:{color:"#555",font:{size:11}} },
+        y: { grid:{color:"#1e2035"}, ticks:{color:"#444",font:{size:10}, callback:v=>m.fmt(v)} }
+      }
+    }
+  });
+}
+
+function renderTable() {
+  const m = METRICS.find(m=>m.key===activeMetric);
+  document.getElementById("tableTitle").textContent = `Детальная таблица · ${m.label}`;
+  const activeChs = CHANNELS.filter(ch=>activeCh.includes(ch.key));
+  const showSum = activeChs.length > 1;
+
+  let html = `<thead><tr><th>Месяц</th>${activeChs.map(ch=>`<th style="color:${ch.color}">${ch.label}</th>`).join("")}${showSum?'<th style="color:#666">Сумма</th>':''}</tr></thead><tbody>`;
+
+  months.forEach((k,i) => {
+    const vals = activeChs.map(ch=>RAW[k][`${ch.key}_${activeMetric}`]||0);
+    const sum = vals.reduce((a,b)=>a+b,0);
+    html += `<tr><td>${MONTH_LABELS[k]}</td>${vals.map(v=>`<td>${fmt(activeMetric,v)}</td>`).join("")}${showSum?`<td style="color:#666">${fmt(activeMetric,sum)}</td>`:''}</tr>`;
+  });
+
+  const totals = activeChs.map(ch=>total(ch.key));
+  const grandTotal = totals.reduce((a,b)=>a+b,0);
+  html += `</tbody><tfoot><tr><td>Итого</td>${totals.map((t,i)=>`<td style="color:${activeChs[i].color}">${fmt(activeMetric,t)}</td>`).join("")}${showSum?`<td style="color:#888">${fmt(activeMetric,grandTotal)}</td>`:''}</tr></tfoot>`;
+
+  document.getElementById("dataTable").innerHTML = html;
+}
+
+function render() {
+  renderChannelBtns();
+  renderMetricTabs();
+  renderKPI();
+  renderChart();
+  renderTable();
+}
+
+function toggleCh(key) {
+  if (activeCh.includes(key)) {
+    if (activeCh.length > 1) activeCh = activeCh.filter(c=>c!==key);
+  } else {
+    activeCh = [...activeCh, key];
+  }
+  render();
+}
+
+function setMetric(key) {
+  activeMetric = key;
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
